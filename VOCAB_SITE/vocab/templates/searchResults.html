@@ -1,29 +1,33 @@
 {% extends "master.html" %}
-
-{% block extra_css %}
-<!-- This line holds stylesheets for individual pages if needed -->
-{% load static %}
-<link rel="stylesheet" href="{% static "vocab/css/home.css" %}">
-{% endblock extra_css %}
-
+{% block title %}xAPI Vocab Search{% endblock title %}
+{% block heading %}xAPI Vocab Search{% endblock heading %}
 {% block content %}
-<div class="row content">
-    <p class="para">Welcome to the Search Results Page.  Below you should find all the words in all the world.  You asked for it, you got it!</p>
-    <hr>
-        <form class="" role="form" action="{% url 'vocab:searchResults' %}" method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        <!-- set this aside for a moment and try something different below this line which works -->
-        {{ form.as_p }}
-        <input type="submit" value="Search" />
-    </form>
-    <hr>
-    <ul>
-    {% for iri in iris %}
-    <li>{{ iri.return_address }}</li>
-    {% empty %}
-    No Results
-    {% endfor %}
-    </ul>
+<br>
+
+<div class="content">
+    <div class="pure-g">
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+        <h3 class="content-subhead">Search IRIs</h3>
+        <p>Welcome to the search page.  Below you should find all the words in all the world.  You asked for it, you got it!</p>
+        <form class="pure-form" action="{% url 'vocab:searchResults' %}" method="post">
+            <fieldset>
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                {{ form.as_p }}
+                <button type="submit" class="pure-button pure-button-primary" value="Search">Search</button>
+            </fieldset>
+        </form>
+        <br>
+        <ul>
+        {% for iri in iris %}
+        <li><a href="{{ iri.return_address }}">{{ iri.return_address }}</a></li>
+        {% empty %}
+        No Results
+        {% endfor %}
+        </ul>        
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+    </div>
 </div>
 {% endblock content %}

@@ -1,24 +1,27 @@
 {% extends "master.html" %}
-
-{% block extra_css %}
-<!-- This line holds stylesheets for individual pages if needed -->
-{% load static %}
-<link rel="stylesheet" href="{% static "vocab/css/home.css" %}">
-{% endblock extra_css %}
-
+{% block title %}xAPI Vocab User Profile{% endblock title %}
+{% block heading %}xAPI Vocab User Profile{% endblock heading %}
 {% block content %}
-<div class="row content">
-    <p class="para">Welcome to the User Profile Page.  Below you should find everything we know about you.  U B U!</p>
-    <hr>
-        <p>Hello {{ user.username }}!</p>
-    <hr>
-    <br>
-    <ul>
-    {% for iri in user.userprofile.registerediri_set.all %}
-    <li>{{ iri.return_address }}</li>
-    {% empty %}
-    You have no IRIs registered
-    {% endfor %}
-    </ul>
+<br>
+<div class="content">
+    <div class="pure-g">
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+        <h3 class="content-subhead">User Profile</h3>
+        <p>Welcome to the User Profile Page, {{user.username}}!  Below you should find everything we know about you.  U B U!</p>
+        <ul>
+            {% for iri in user.registerediri_set.all %}
+            {% if iri.accepted and iri.reviewed %}
+            <li><a href="{{ iri.return_address }}">{{ iri.return_address }}</a></li>
+            {% endif %}
+            {% empty %}
+            You have no IRIs registered
+            {% endfor %}
+        </ul>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+    </div>
 </div>
 {% endblock content %}
+{% block extra_js %}
+{% endblock extra_js %}

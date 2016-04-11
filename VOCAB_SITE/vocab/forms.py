@@ -35,9 +35,9 @@ class RegisteredIRIForm(ModelForm):
         model = RegisteredIRI
         fields = ['vocabulary_path', 'term_type', 'term']
         widgets = {
-            'vocabulary_path': forms.TextInput(attrs={'placeholder': 'Vocabulary/Profile', 'class': 'form-control'}),
-            'term_type': forms.Select(attrs={'class': 'form-control'}),
-            'term': forms.TextInput(attrs={'placeholder': 'Term', 'class': 'form-control'})
+            'vocabulary_path': forms.TextInput(attrs={'placeholder': 'Vocabulary/Profile', 'class': 'pure-input-1-2'}),
+            'term_type': forms.Select(attrs={'placeholder': 'Term Type', 'class': 'pure-input-1-2'}),
+            'term': forms.TextInput(attrs={'placeholder': 'Term', 'class': 'pure-input-1-2'})
         }
 
     def clean(self):
@@ -73,5 +73,4 @@ class VocabularyDataForm(forms.ModelForm):
     # vocabIRI = forms.URLField(label='Vocabulary IRI', max_length=100)
     class Meta:
         model = VocabularyData
-        # fields = '__all__'
-        exclude = ['user']
+        fields = '__all__'

@@ -1,23 +1,83 @@
 {% extends "master.html" %}
+{% load staticfiles %}
 {% block extra_css %}
-<!-- This line holds stylesheets for individual pages if needed -->
-{% load static %}
-<link rel="stylesheet" href="{% static "vocab/css/home.css" %}">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+<style>
+  a {color:inherit;}
+  a:visited { text-decoration: none; }
+  a:hover { text-decoration: none; }
+  a:focus { text-decoration: none; }
+  a:hover, a:active { text-decoration: none; }
+  .home-top-content{
+    border-bottom-style:dashed;
+  }
+  .home-icon{
+    font-size:20em;
+    color:white;
+  }
+  label {color:white;}
+</style>
 {% endblock extra_css %}
-
 {% block content %}
-<div class="row content">
-    <p class="para" id="p1">Welcome to the xAPI Vocabulary Registry Page.  Here you can review other vocabularies and create you own vocabularies or individual terms.</p>
-    <p class="para" id="p2">Anyone is welcome to search vocabularies to find the defined meaning of a given term or see if a new term is needed.</p>
-    <p class="para" id="p3">If after considering existing terms you find that no term meets your groups needs, use your group's account or create an account and fill in the proper fields to create a new term or vocabulary.</p>
-    <p class="para" id="p4">For Phase 1, emphasis is placed on establishing the ability to create a persistent IRI which will allow the creation of vocabularyies and terms. Therefore at this point Searching is disabled, please check back in the future.</p>
-    <hr>
-    Please Choose a Button:<br>
-    <a type="button" class="btn btn-info" href="{% url 'vocab:createIRI' %}" role="button" name="createButton">Create</a>
-    <a type="button" class="btn btn-info" href="{% url 'vocab:searchResults' %}" role="button" name="searchButton">Search</a>
+<div class="splash-container">
+    <div class="splash">
+        <h1 class="splash-head">ADL Vocab</h1>
+        <p class="splash-subhead">
+          Welcome to the xAPI Vocabulary Registry. Here you can review other vocabularies and create you own vocabularies or individual terms.
+        </p>
+    </div>
+</div>
+<div class="content-wrapper">
+  <div class="content">
+    <h2 class="content-head is-center">Features</h2>
+    <div class="pure-g">
+      <div class="l-box pure-u-1 pure-u-md-1-1 pure-u-lg-1-3">
+        <h3 class="content-subhead"><i class="fa fa-search"></i>Search</h3>
+        <p>
+          Anyone is welcome to <a target="_blank" href="{% url 'vocab:searchResults' %}">search</a> vocabularies to find the defined meaning of a given term or see if a new term is needed.
+        </p>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-1 pure-u-lg-1-3">
+        <h3 class="content-subhead"><i class="fa fa-plus-circle"></i>Create Term</h3>
+        <p>
+          If after considering existing terms you find that no term meets your groups needs, use your account to <a target="_blank" href="{% url 'vocab:createIRI' %}">create</a> a new term.
+        </p>
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-1 pure-u-lg-1-3">
+        <h3 class="content-subhead"><i class="fa fa-file-code-o"></i>Create Vocabulary</h3>
+        <p>
+          If after considering existing terms you find that no vocabularies meets your groups needs, use your account to <a target="_blank" href="{% url 'vocab:createVocabulary' %}">create</a> a new vocabulary.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="ribbon l-box-lrg pure-g">
+    <div class="l-box-lrg is-center pure-u-1 pure-u-md-1-2 pure-u-lg-2-5">
+        <i class="fa fa-users home-icon"></i>
+    </div>
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-2-5">
+        <h2 class="content-head content-head-ribbon">Register Now</h2>
+			<form class="pure-form pure-form-stacked" action="{% url 'vocab:createUser' %}" method="post">
+			  {% csrf_token %}
+			  <fieldset>
+			      {% for field in form %}
+			        <label for="{{ field.auto_id }}">{{ field.label }}</label>
+			        {% if field.name == 'username' %}
+			          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="text" placeholder="Your Username" required>
+			        {% elif field.name == 'email' %}
+			          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="email" placeholder="Your Email" required>
+			        {% else %}
+			          <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="password" placeholder="Your Password" required>
+			        {% endif %}
+			      {% endfor %}
+			      <button type="submit" class="pure-button pure-button-primary">Sign Up</button>
+			  </fieldset>
+			</form> 
+    </div>
+  </div>
+  <div class="footer l-box is-center">
+      <img class="brand" height="35" width="55" src="{% static 'vocab/img/test.png' %}" alt="experience api logo"/> Advanced Distributed Learning
+      <p>This is an official website of the U.S. Government &copy; Advanced Distributed Learning</p>
+  </div>  
 </div>
 {% endblock content %}
-
-{% block extra_js %}
-<!-- <script type="text/javascript" src="{% static "vocab/js/home.js" %}"></script> -->
-{% endblock extra_js %}

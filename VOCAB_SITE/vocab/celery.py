@@ -10,7 +10,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'vocab_site.settings')
 from django.conf import settings
 
 app = Celery('vocab',
-			broker='amqp://andy:1234@localhost:5672/andy',
+			broker='amqp://vocab:password@localhost:5672/vocab_vhost',
 			include=['vocab.tasks'])
 
 # Using a string here means the worker will not have to

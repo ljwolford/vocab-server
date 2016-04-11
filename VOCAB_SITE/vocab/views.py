@@ -17,14 +17,10 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from .forms import RegisterForm, RegisteredIRIForm, SearchForm, RequiredFormSet, VocabularyDataForm
-from .models import RegisteredIRI, UserProfile, VocabularyData
+from .models import RegisteredIRI, VocabularyData
 from .tasks import notify_user, update_htaccess
 
 logger = logging.getLogger(__name__)
-
-@require_http_methods(["GET"])
-def home(request):
-    return render(request, 'home.html')
 
 @csrf_protect
 @login_required
@@ -44,17 +40,8 @@ def createIRI(request):
                     vocabulary_path = form.cleaned_data['vocabulary_path']
                     termType = form.cleaned_data['term_type']
                     term = form.cleaned_data['term']
-                    profile = UserProfile.objects.get(user=request.user)
-                    iriobj = RegisteredIRI.objects.create(vocabulary_path=vocabulary_path, term_type=termType, term=term, userprofile=profile)
+                    iriobj = RegisteredIRI.objects.create(vocabulary_path=vocabulary_path, term_type=termType, term=term, user=request.user)
             return render(request, 'iriCreationResults.html', {'newiri': iriobj.return_address()})
-            #         # vocab = Vocabulary.objects.create
-            #         termType = form.cleaned_data['termType']
-            #         term = form.cleaned_data['term']
-            #         # profile = UserProfile.objects.get(user=request.user)
-            #         iriobj = RegisteredIRI.objects.create(vocab=vocabulary, term_type=termType, term=term, userprofile=profile)
-            # return HttpResponseRedirect(reverse('iriCreationResults'))
-            # # redirect to a new URL:
-
     # if a GET (or any other method) we'll create a blank form
     else:
         formset = RegisteredIRIFormset()
@@ -78,7 +65,6 @@ def createUser(request):
                 # if email doesn't already exist
                 if not User.objects.filter(email__exact=email).count():
                     user = User.objects.create_user(name, email, pword)
-                    UserProfile.objects.create(user=user)
                 else:
                     return render(request, 'createUser.html', {"form": form, "error_message": "Email %s is already registered." % email})
             else:
@@ -91,33 +77,6 @@ def createUser(request):
             return HttpResponseRedirect(reverse('home'))
         else:
             return render(request, 'createUser.html', {"form": form})
-
-@csrf_protect
-@login_required
-@require_http_methods(["GET", "POST"])
-@transaction.atomic
-def vocabularyForm(request):
-    # if this is a POST request we need to process the form data
-    if request.method == 'POST':
-        # create a form instance and populate it with data from the request:
-        form = VocabularyDataForm(request.POST)
-        # check whether it's valid:
-        if form.is_valid():
-            # process the data in form.cleaned_data as required
-            vocabName = form.cleaned_data['name']
-            vocabIRI = form.cleaned_data['iri']
-            print "hi andy", vocabIRI, vocabName
-            vocabobj = VocabularyData.objects.create(name=vocabName, iri=vocabIRI, user=request.user)
-            # redirect to a new URL:
-            print reverse('vocab:vocabulary', args=('adl',))
-            return HttpResponseRedirect(reverse('vocab:vocabulary', args=(vocabIRI.vocab,)))
-
-    # if a GET (or any other method) we'll create a blank form
-    # starting at the vocab portion of the iri
-    else:
-        form = VocabularyDataForm()
-
-    return render(request, 'vocabularyForm.html', {'form': form})
 
 @login_required
 @require_http_methods(["GET"])
@@ -141,7 +100,7 @@ def searchResults(request):
 @login_required()
 @require_http_methods(["GET"])
 def iriCreationResults(request):
-    results = RegisteredIRI.objects.filter(userprofile__user = request.user)
+    results = RegisteredIRI.objects.filter(user=request.user)
     return render(request, 'iriCreationResults.html', {'iris':results})
 
 @login_required()
@@ -168,27 +127,10 @@ def adminIRIs(request):
                 else:
                     iri.reviewed = True
                 iri.save()
-                notify_user.delay(iri.return_address(), iri.userprofile.user.email, iri.accepted)
+                notify_user.delay(iri.return_address(), iri.user.email, iri.accepted)
         return render(request, 'adminIRIs.html', {"iris": iris})
     else:
         return HttpResponseForbidden()
-
-@login_required()
-@require_http_methods(["GET"])
-def logout_view(request):
-    logout(request)
-    return HttpResponseRedirect(reverse('home'))
-
-@login_required()
-@require_http_methods(["GET"])
-def createVocab(request):
-    return HttpResponseRedirect(reverse('home'))
-
-# @csrf_protect
-# @login_required()
-# @require_http_methods(["GET"])
-# def rdfaForm(request):
-#     return render(request, 'rdfaForm.html')
 
 @csrf_protect
 @login_required()
@@ -198,3 +140,27 @@ def vocabulary(request, vocab_name):
     dispV = VocabularyData.objects.get(name=vocab_name)
     print dispV
     return render(request, 'vocabulary.html', {'vocab':vocab_name})
+
+@csrf_protect
+@login_required
+@require_http_methods(["GET", "POST"])
+@transaction.atomic
+def createVocabulary(request):
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = VocabularyDataForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            vocabName = form.cleaned_data['name']
+            vocabIRI = form.cleaned_data['iri']
+            vocabobj = VocabularyData.objects.create(name=vocabName, iri=vocabIRI, user=request.user)
+            return HttpResponseRedirect(reverse('vocab:vocabulary', args=(vocabIRI.vocab,)))
+
+    # if a GET (or any other method) we'll create a blank form
+    # starting at the vocab portion of the iri
+    else:
+        form = VocabularyDataForm()
+
+    return render(request, 'createVocabulary.html', {'form': form})

@@ -4,7 +4,7 @@
 <div class="jumbotron">
     <h1>Vocabulary Form</h1>
 </div>
-<form action="{% url 'vocab:vocabularyForm' %}" class="form-inline" method="post">
+<form action="{% url 'vocab:createVocabulary' %}" class="form-inline" method="post">
     {% csrf_token %}
     {{form.error}}
     {{form}}

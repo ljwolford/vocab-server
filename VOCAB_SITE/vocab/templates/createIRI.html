@@ -1,52 +1,134 @@
 {% extends "master.html" %}
 {% load i18n %}
-
-{% block extra_css %}
-<!-- This line holds stylesheets for individual pages if needed -->
-{% load static %}
-<link rel="stylesheet" href="{% static "vocab/css/home.css" %}">
-{% endblock extra_css %}
-
+{% block title %}xAPI Vocab Create IRIs{% endblock title %}
+{% block heading %}xAPI Vocab Create IRIs{% endblock heading %}
 {% block content %}
-<div class="row content">
-    <p class="para">Welcome to the Create IRI Page.  Here you can access and submit the form to request a persistant IRI.  Have fun!</p>
-    <hr>
-    <form action="{% url 'vocab:createIRI' %}" class="form-inline" method="post">
-        {% csrf_token %}
-        {{ formset.management_form }}
-        {{ formset.non_form_errors }}
-        <div class="forms">
-            {% for form in formset %}
-            <div id="form-{{ forloop.counter0 }}">
-                {{ form.errors }}
-                <big>https://w3id.org/xapi/ {{ form.vocabulary_path }} / {{form.term_type}} / {{form.term}}</big>
-                <br>
-            </div>
-            {% endfor %}
-        </div>
-        <input class="btn btn-success" type="submit" value="Submit"/>
-        <button type='button' class='btn btn-info' id="add-form"><span class='glyphicon glyphicon-plus' aria-hidden='true'></span> Add IRI</button>
-    </form>
-
-    <hr>
-
-</div>
 <br>
+<div class="content">
+    <div class="pure-g">
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+            <h3 class="content-subhead">IRI Creation</h3>
+            <p>Welcome to the Create IRI Page.  Here you can access and submit the form to request a persistant IRI.  Have fun!</p>
+            <form action="{% url 'vocab:createIRI' %}" class="pure-form" method="post">
+                <fieldset class="pure-group">            
+                    {% csrf_token %}
+                    {{ formset.management_form }}
+                    {{ formset.non_form_errors }}
+                    {% for form in formset %}
+                    <div class="forms">
+                        <div id="form-{{ forloop.counter0 }}">
+                            <div class="holder">
+                                {{ form.errors }}
+                                {{ form.vocabulary_path }} {{form.term_type}} {{form.term}}
+                                <span>https://w3id.org/xapi/<span id="vocab"></span>/<span id="termtype"></span>/<span id="term"></span></span>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                    {% endfor %}   
+                </fieldset>
+                <button type="submit" class="pure-button pure-button-primary" id="submit-button" value="Submit">Submit</button>
+                <button type='button' class="pure-button pure-button-primary" id="add-form">Add IRI</button>
+                <button type='button' class="pure-button pure-button-primary" style="background:red;" id="remove-form">Remove IRI</button>
+            </form>
+        </div>
+        <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+    </div>
+</div>
 {% endblock content %}
-
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 <script type="text/html" id='formtemplate'>
     <div id="form-__prefix__">
-        <big>https://w3id.org/xapi/ {{ formset.empty_form.vocabulary_path }} / {{formset.empty_form.term_type}} / {{formset.empty_form.term}}</big>
-        <br>
+        <div class="holder">
+            {{ formset.empty_form.vocabulary_path }} {{formset.empty_form.term_type}} {{formset.empty_form.term}}
+            <span>https://w3id.org/xapi/<span id="vocab"></span>/<span id="termtype"></span>/<span id="term"></span></span>
+        </div>
+    <br>
     </div>
 </script>
 <script type="text/javascript">
-    $('#add-form').click(function(ev) {
-        ev.preventDefault();
-        var count = $('.forms').children().length;
-        $('div.forms').append($('#formtemplate').html().replace(new RegExp('__prefix__', 'g'), count));
-        $('#id_form-TOTAL_FORMS').attr('value', count+1);
-    })
+    $(document).on('DOMNodeInserted', function(e) {
+        $('input').filter(function(){
+            return this.id.match(/(id_form-\d+-vocabulary_path)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#vocab').html($(this).val());   
+        })
+        $('select').filter(function(){
+            return this.id.match(/(id_form-\d+-term_type)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#termtype').html($(this).val());   
+        }) 
+        $('input').filter(function(){
+            return this.id.match(/(id_form-\d+-term)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#term').html($(this).val());   
+        })        
+    });
+    $(document).ready(function(){
+        $(".errorlist").each(function(i, obj){
+            var parentdiv = $(obj).parent();
+            if (!$(this).hasClass('nonfield') && $(this).children('li').html().indexOf('__all__') >= 0){
+                parentdiv.before(function(){
+                    return $(obj).children().find('ul');
+                });
+                $(obj).remove();
+            }
+            else if (!$(this).hasClass('nonfield') && parentdiv.hasClass('holder')){
+                parentdiv.before(function(){
+                    return $(obj);
+                });
+            }
+            parentdiv.children().nextAll('span').children('#vocab').html(parentdiv.children().first().val())
+        });
+
+        $('input').filter(function(){
+            return this.id.match(/(id_form-\d+-vocabulary_path)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#vocab').html($(this).val());   
+        })    
+        $('select').filter(function(){
+            return this.id.match(/(id_form-\d+-term_type)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#termtype').html($(this).val());   
+        }) 
+        $('input').filter(function(){
+            return this.id.match(/(id_form-\d+-term)/);
+        })
+        .change(function(){
+            $(this).nextAll('span').children('#term').html($(this).val());   
+        })
+
+        $('#add-form').click(function(ev) {
+            ev.preventDefault();
+            var currentcount = $('.forms').children("div").length;
+            $('.forms').append($('#formtemplate').html().replace(new RegExp('__prefix__', 'g'), currentcount));
+            $('#id_form-TOTAL_FORMS').attr('value', currentcount+1);
+            if ($('#id_form-TOTAL_FORMS').attr('value') > 0){
+                $('#submit-button').show(); 
+                $('remove-form').show();
+            }           
+        })
+        $('#remove-form').click(function(ev) {
+            ev.preventDefault();
+            var currentcount = $('.forms').children("div").length;
+            $('.forms').children("div").last().remove()
+            $('#id_form-TOTAL_FORMS').attr('value', currentcount-1);
+            if ($('#id_form-TOTAL_FORMS').attr('value') == 0){
+                $('#submit-button').hide();
+                $('#remove-form').hide();
+            }
+            else if ($('#id_form-TOTAL_FORMS').attr('value') > 0){
+                $('#submit-button').show();
+                $('#remove-form').show();
+            }
+        })
+    });
 </script>
 {% endblock extra_js %}

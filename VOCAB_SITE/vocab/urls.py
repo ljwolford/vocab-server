@@ -27,10 +27,9 @@ urlpatterns = [
     url(r'^adminIRIs$', views.adminIRIs, name="adminIRIs"),
     url(r'^createIRI$', views.createIRI, name="createIRI"),
     url(r'^createUser$', views.createUser, name="createUser"),
-    url(r'^createVocab$', views.createVocab, name="createVocab"),
     url(r'^searchResults$', views.searchResults, name="searchResults"),
     url(r'^iriCreationResults$', views.iriCreationResults, name="iriCreationResults"),
     url(r'^userProfile$', views.userProfile, name="userProfile"),
-    url(r'^vocabulary/new$', views.vocabularyForm, name="vocabularyForm"),
-    url(r'^vocabulary/(?P<vocab_name>[\w-]+)$', views.vocabulary, name="vocabulary"),
+    url(r'^createVocabulary$', views.createVocabulary, name="createVocabulary"),
+    # url(r'^vocabulary/(?P<vocab_name>[\w-]+)$', views.vocabulary, name="vocabulary"),
 ]

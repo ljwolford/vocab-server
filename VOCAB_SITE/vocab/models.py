@@ -11,18 +11,12 @@ from django.dispatch import receiver
 from .tasks import notify_admins
 
 TERM_TYPE_CHOICES = (
-	('', ''),
+	('', '------'),
 	('verbs', 'Verbs'),
 	('activityTypes', 'Activity Types'),
 	('attachments', 'Attachments'),
 	('extensions', 'Extensions')
 )
-
-class UserProfile(models.Model):
-	user = models.OneToOneField(User, on_delete=models.CASCADE)
-
-	def __unicode__(self):
-		return json.dumps({"user": self.user.username, "registeredIRIs": [iri.return_address() for iri in self.registerediri_set.all()]})
 
 class RegisteredIRI(models.Model):
 	vocabulary_path = models.CharField(max_length=50)
@@ -30,7 +24,7 @@ class RegisteredIRI(models.Model):
 	term = models.CharField(max_length=50, blank=True)
 	accepted = models.BooleanField(default=False)
 	reviewed = models.BooleanField(default=False)
-	userprofile = models.ForeignKey(UserProfile, null=True, on_delete=models.SET_NULL)
+	user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
 	def return_address(self):
 		if self.term_type:
@@ -43,12 +37,13 @@ class RegisteredIRI(models.Model):
 		unique_together = ("vocabulary_path", "term_type", "term")
 
 	def save(self, *args, **kwargs):
-		if self.term and not self.term_type:
+		if (self.term and not self.term_type) or (self.term and self.term_type == TERM_TYPE_CHOICES[0][1]):
 			raise IntegrityError("Must supply a term type if supplying a term")
 		super(RegisteredIRI, self).save(*args, **kwargs)
 
 	def __unicode__(self):
-		return json.dumps({"address": self.return_address(), "user": self.userprofile.user.username})
+		# If is for if user gets deleted somehow...
+		return json.dumps({"address": self.return_address(), "user": self.user.username if self.user else 'None (Removed)' })
 
 @receiver(post_save, sender=RegisteredIRI)
 def iri_post_save(sender, **kwargs):

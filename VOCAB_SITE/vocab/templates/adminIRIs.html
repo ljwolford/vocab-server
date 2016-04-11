@@ -1,29 +1,32 @@
 {% extends "master.html" %}
-
-{% block extra_css %}
-<!-- This line holds stylesheets for individual pages if needed -->
-{% load static %}
-<link rel="stylesheet" href="{% static "vocab/css/home.css" %}">
-{% endblock extra_css %}
-
+{% block title %}xAPI Vocab Manage IRIs{% endblock title %}
+{% block heading %}xAPI Vocab Manage IRIs{% endblock heading %}
 {% block content %}
-<div id="iriforms">
-	{% for iri in iris %}
-    <form action="{% url 'vocab:adminIRIs' %}" method="post">
-        {% csrf_token %}
-        <label for="hidden">{{ iri.return_address }}</label>
-        <input type="hidden" name="hidden-vocabulary_path" value="{{ iri.vocabulary_path }}"/>
-        <input type="hidden" name="hidden-term_type" value="{{ iri.term_type }}"/>
-        <input type="hidden" name="hidden-term" value="{{ iri.term }}"/>
-        <input type="submit" name="action" value="Accept" />
-		<input type="submit" name="action" value="Reject" />
-    </form>
-	{% empty %}
-	There are currently no pending IRIs.
-	{% endfor %}
-
+<br>
+<div class="content">
+    <div class="pure-g">
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3">
+        <h3 class="content-subhead">Pending IRIs</h3>
+        {% for iri in iris %}
+        <form class="pure-form" action="{% url 'vocab:adminIRIs' %}" method="post">
+            <fieldset>
+                {% csrf_token %}
+                <label for="hidden">{{ iri.return_address }}</label>
+                <input type="hidden" name="hidden-vocabulary_path" value="{{ iri.vocabulary_path }}"/>
+                <input type="hidden" name="hidden-term_type" value="{{ iri.term_type }}"/>
+                <input type="hidden" name="hidden-term" value="{{ iri.term }}"/>
+                <button type="submit" class="pure-button pure-button-primary" name="action" value="Accept">Accept</button>
+                <button type="submit" class="pure-button pure-button-primary" style="background:red;" name="action" value="Reject">Reject</button>
+            </fieldset>
+        </form>
+        {% empty %}
+        There are currently no pending IRIs.
+        {% endfor %}
+      </div>
+      <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>
+    </div>
 </div>
-
 {% endblock content %}
 {% block extra_js %}
 {% endblock extra_js %}
