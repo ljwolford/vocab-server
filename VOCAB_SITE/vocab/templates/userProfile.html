@@ -12,7 +12,7 @@
         <ul>
             {% for iri in user.registerediri_set.all %}
             {% if iri.accepted and iri.reviewed %}
-            <li><a href="{{ iri.return_address }}">{{ iri.return_address }}</a></li>
+            <li><a href="{{ iri.full_iri }}">{{ iri.full_iri }}</a></li>
             {% endif %}
             {% empty %}
             You have no IRIs registered

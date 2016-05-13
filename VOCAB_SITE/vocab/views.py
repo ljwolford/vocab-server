@@ -1,5 +1,8 @@
+import csv
+from datetime import datetime
 import logging
-
+import pdb
+from django.conf import settings
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,13 +13,13 @@ from django.db import transaction, IntegrityError
 from django.db.models import Q
 
 from django.forms import formset_factory
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from .forms import RegisterForm, RegisteredIRIForm, SearchForm, RequiredFormSet, VocabularyDataForm
+from .forms import RegisterForm, RegisteredIRIForm, SearchForm, RequiredFormSet, VocabularyDataForm, UploadVocabularyForm
 from .models import RegisteredIRI, VocabularyData
 from .tasks import notify_user, update_htaccess
 
@@ -41,7 +44,7 @@ def createIRI(request):
                     termType = form.cleaned_data['term_type']
                     term = form.cleaned_data['term']
                     iriobj = RegisteredIRI.objects.create(vocabulary_path=vocabulary_path, term_type=termType, term=term, user=request.user)
-            return render(request, 'iriCreationResults.html', {'newiri': iriobj.return_address()})
+            return render(request, 'iriCreationResults.html', {'newiri': iriobj.full_iri})
     # if a GET (or any other method) we'll create a blank form
     else:
         formset = RegisteredIRIFormset()
@@ -127,7 +130,7 @@ def adminIRIs(request):
                 else:
                     iri.reviewed = True
                 iri.save()
-                notify_user.delay(iri.return_address(), iri.user.email, iri.accepted)
+                notify_user.delay(iri.full_iri, iri.user.email, iri.accepted)
         return render(request, 'adminIRIs.html', {"iris": iris})
     else:
         return HttpResponseForbidden()
@@ -148,19 +151,108 @@ def vocabulary(request, vocab_name):
 def createVocabulary(request):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
-        # create a form instance and populate it with data from the request:
-        form = VocabularyDataForm(request.POST)
-        # check whether it's valid:
-        if form.is_valid():
-            # process the data in form.cleaned_data as required
-            vocabName = form.cleaned_data['name']
-            vocabIRI = form.cleaned_data['iri']
-            vocabobj = VocabularyData.objects.create(name=vocabName, iri=vocabIRI, user=request.user)
-            return HttpResponseRedirect(reverse('vocab:vocabulary', args=(vocabIRI.vocab,)))
-
-    # if a GET (or any other method) we'll create a blank form
-    # starting at the vocab portion of the iri
+        if 'upload' in request.POST:
+            form = UploadVocabularyForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    parse_csv(request.FILES['file'], request.user)
+                except Exception, e:
+                    return HttpResponseBadRequest(e.message)
+                return render(request, 'createVocabulary.html', {'upload_form': UploadVocabularyForm(), 'form':VocabularyDataForm(),
+                    'success': 'Vocabulary successfully created'})
+            else:
+                return render(request, 'createVocabulary.html', {'upload_form': form, 'form': VocabularyDataForm()})
+        else:
+            # create a form instance and populate it with data from the request:
+            form = VocabularyDataForm(request.POST)
+            # check whether it's valid:
+            if form.is_valid():
+                # process the data in form.cleaned_data as required
+                vocabName = form.cleaned_data['name']
+                vocabIRI = form.cleaned_data['iri']
+                vocabobj = VocabularyData.objects.create(name=vocabName, iri=vocabIRI, user=request.user)
+                return render(request, 'createVocabulary.html', {'upload_form': UploadVocabularyForm(), 'form':VocabularyDataForm(),
+                    'success': 'Vocabulary successfully created'})
+            else:
+                return render(request, 'createVocabulary.html', {'upload_form': UploadVocabularyForm(), 'form': form})
     else:
-        form = VocabularyDataForm()
+        form = VocabularyDataForm(user=request.user)
+        upload_form = UploadVocabularyForm()
+    return render(request, 'createVocabulary.html', {'form': form, 'upload_form': upload_form})
 
-    return render(request, 'createVocabulary.html', {'form': form})
+@require_http_methods(["GET"])
+def downloadCSV(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="vocabtemplate.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["IRI", "rdf:type", "skos:prefLabel", "skos:altLabel", "xapi:thirdPartyLabel", "xapi:closelyRelatedNaturalLanguageTerm", \
+        "skos:inScheme", "xapi:referencedBy", "skos:editorialNote", "skos:definition", "skos:historyNote", "skos:broader", "skos:broadMatch", \
+        "skos:narrower", "skos:narrowMatch", "skos:relatedMatch", "dcterms:created", "dcterms:modified", "foaf:name", "prov:wasGeneratedBy", \
+        "prov:wasRevisionOf", "prov:specializationOf", "skos:example"])
+    return response
+
+def parse_csv(vocab_file, user):
+    reader = csv.reader(vocab_file)
+    data = {'base_iri': '', 'rdf_type': '', 'dcterms_created': '', 'dcterms_modified': '', 'foaf_name': '', 'prov_specializationOf': '', 'prov_wasGeneratedBy': '',
+    'prov_wasRevisionOf': '', 'skos_altLabel': '', 'skos_broader': '', 'skos_broadMatch': '', 'skos_definition': '', 'skos_editorialNote': '',
+    'skos_example': '', 'skos_historyNote': '', 'skos_inScheme': '', 'skos_narrower': '', 'skos_narrowMatch': '', 'skos_prefLabel': '',
+    'skos_relatedMatch': '', 'skos_scopeNote': '', 'xapi_closelyRelatedNaturalLanguageTerm': '', 'xapi_referencedBy': '', 'xapi_thirdPartyLabel': ''}
+    row_num = 0
+    for row in reader:
+        # In case first row of file is header row
+        if row[0] != 'IRI':
+            row_num += 1
+            validate_csv_row(row, row_num, user)
+            try:
+                iri = RegisteredIRI.objects.create(full_iri=row[0], user=user)
+            except Exception, e:
+                raise Exception("Could not create IRI %s in row %s -- Error: %s" % (row[0], row_num, e.message))
+            row[0] = iri
+            data['base_iri'] = row[0]
+            data['rdf_type'] = row[1]
+            data['skos_prefLabel'] = [x.strip() for x in row[2][1:-1].split(",")]
+            data['skos_altLabel'] = [x.strip() for x in row[3][1:-1].split(",")]
+            data['xapi_thirdPartyLabel'] = [x.strip() for x in row[4][1:-1].split(",")]
+            data['xapi_closelyRelatedNaturalLanguageTerm'] = [x.strip() for x in row[5][1:-1].split(",")]
+            data['skos_inScheme'] = row[6]
+            data['xapi_referencedBy'] = row[7]
+            data['skos_editorialNote'] = [x.strip() for x in row[8][1:-1].split(",")]
+            data['skos_scopeNote'] = [x.strip() for x in row[9][1:-1].split(",")]
+            data['skos_definition'] = [x.strip() for x in row[10][1:-1].split(",")]
+            data['skos_historyNote'] = [x.strip() for x in row[11][1:-1].split(",")]
+            data['skos_broader'] = [x.strip() for x in row[12][1:-1].split(",")]
+            data['skos_broadMatch'] = [x.strip() for x in row[13][1:-1].split(",")]
+            data['skos_narrower'] = [x.strip() for x in row[14][1:-1].split(",")]
+            data['skos_narrowMatch'] = [x.strip() for x in row[15][1:-1].split(",")]
+            data['skos_relatedMatch'] = [x.strip() for x in row[16][1:-1].split(",")]
+            pdb.set_trace()
+            data['dcterms_created'] = row[17]
+            data['dcterms_modified'] = row[18]
+            data['foaf_name'] = [x.strip() for x in row[19][1:-1].split(",")]
+            data['prov_wasGeneratedBy'] = row[20]
+            data['prov_wasRevisionOf'] = [x.strip() for x in row[21][1:-1].split(",")]
+            data['prov_specializationOf'] = [x.strip() for x in row[22][1:-1].split(",")]
+            data['skos_example'] = [x.strip() for x in row[23][1:-1].split(",")]
+            try:
+                VocabularyData.objects.create(**data)
+            except Exception, e:
+                raise Exception("Could not create Vocabulary object in row %s -- Error: %s" % (row_num, e.message))
+
+def validate_csv_row(row, row_num, user):
+    if not row[0].startswith(settings.IRI_DOMAIN):
+        raise Exception("IRI in row %s does not begin with %s" % (row_num, settings.IRI_DOMAIN))
+
+    if RegisteredIRI.objects.filter(full_iri=row[0]).exists():
+        raise Exception("IRI %s in row %s already exists" % (row[0], row_num))
+
+    if row[17]:
+        try:
+            row[17] = datetime.strptime(row[17], "%m/%d/%Y")
+        except ValueError as e:
+            raise Exception("Error while parsing the date from dcterms:created, row %s -- Error: %s" % (row_num, e.message))
+
+    if row[18]:
+        try:
+            row[18] = datetime.strptime(row[18], "%m/%d/%Y")
+        except ValueError as e:
+            raise Exception("Error while parsing the date from dcterms:modified, row %s -- Error: %s" % (row_num, e.message))

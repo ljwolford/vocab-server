@@ -12,7 +12,7 @@
         <form class="pure-form" action="{% url 'vocab:adminIRIs' %}" method="post">
             <fieldset>
                 {% csrf_token %}
-                <label for="hidden">{{ iri.return_address }}</label>
+                <label for="hidden">{{ iri.full_iri }}</label>
                 <input type="hidden" name="hidden-vocabulary_path" value="{{ iri.vocabulary_path }}"/>
                 <input type="hidden" name="hidden-term_type" value="{{ iri.term_type }}"/>
                 <input type="hidden" name="hidden-term" value="{{ iri.term }}"/>

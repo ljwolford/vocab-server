@@ -21,7 +21,7 @@
         <br>
         <ul>
         {% for iri in iris %}
-        <li><a href="{{ iri.return_address }}">{{ iri.return_address }}</a></li>
+        <li><a href="{{ iri.full_iri }}">{{ iri.full_iri }}</a></li>
         {% empty %}
         No Results
         {% endfor %}

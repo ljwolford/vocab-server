@@ -31,5 +31,6 @@ urlpatterns = [
     url(r'^iriCreationResults$', views.iriCreationResults, name="iriCreationResults"),
     url(r'^userProfile$', views.userProfile, name="userProfile"),
     url(r'^createVocabulary$', views.createVocabulary, name="createVocabulary"),
+    url(r'^downloadCSV$', views.downloadCSV, name="downloadCSV"),
     # url(r'^vocabulary/(?P<vocab_name>[\w-]+)$', views.vocabulary, name="vocabulary"),
 ]

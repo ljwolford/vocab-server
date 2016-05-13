@@ -21,12 +21,6 @@ class RegisterForm(forms.Form):
                 return cleaned
         raise forms.ValidationError("Passwords did not match")
 
-class ContactForm(forms.Form):
-    subject = forms.CharField(label='Subject', max_length=100)
-    message = forms.CharField(widget=forms.Textarea)
-    sender = forms.EmailField()
-    cc_myself = forms.BooleanField(required=False)
-
 class SearchForm(forms.Form):
     search_term = forms.CharField(label='Search:', max_length=100)
 
@@ -54,7 +48,6 @@ class RequiredFormSet(BaseFormSet):
         for form in self.forms:
             form.empty_permitted = False
 
-
     def clean(self):
         cleaned = super(RequiredFormSet, self).clean()
         form = self.forms[0]
@@ -69,8 +62,22 @@ class RequiredFormSet(BaseFormSet):
                 tuple_list.append(data_tuple)
 
 class VocabularyDataForm(forms.ModelForm):
-    # vocabName = forms.CharField(label='Vocabulary Name', max_length=100)
-    # vocabIRI = forms.URLField(label='Vocabulary IRI', max_length=100)
     class Meta:
         model = VocabularyData
-        fields = '__all__'
+        exclude = ['payload']
+
+    def __init__(self, user=None, **kwargs):
+        super(VocabularyDataForm, self).__init__(**kwargs)
+        if user:
+            self.fields['base_iri'].queryset = RegisteredIRI.objects.filter(user=user)
+
+class UploadVocabularyForm(forms.Form):
+    file = forms.FileField(label='Vocabulary CSV:')
+
+    def clean(self):
+        cleaned = super(UploadVocabularyForm, self).clean()
+        if not 'file' in cleaned:
+            return cleaned
+        file_name = cleaned.get("file").name
+        if not file_name.endswith('.csv'):
+            raise forms.ValidationError("File must end with .csv")
